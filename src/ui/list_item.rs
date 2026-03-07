@@ -2,6 +2,7 @@ use gpui::prelude::InteractiveElement as _;
 use gpui::prelude::StatefulInteractiveElement as _;
 use gpui::*;
 use gpui_component::ActiveTheme;
+use gpui_component::StyledExt;
 
 use crate::db::{ClipboardData, ClipboardEntry};
 
@@ -151,7 +152,7 @@ impl RenderOnce for ClipboardListItem {
                             .pt_1()
                             .flex()
                             .items_center()
-                            .gap_2()
+                            .gap_1()
                             .child(
                                 div()
                                     .px_0p5()

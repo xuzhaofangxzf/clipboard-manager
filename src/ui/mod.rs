@@ -1,6 +1,5 @@
 mod list_item;
 mod main_window;
-mod search_bar;
 mod settings_window;
 
 pub use main_window::MainWindow;

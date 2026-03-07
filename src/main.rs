@@ -165,8 +165,8 @@ fn open_settings_window(
             window_bounds: Some(WindowBounds::Windowed(Bounds {
                 origin: Point::default(),
                 size: Size {
-                    width: px(560.0),
-                    height: px(440.0),
+                    width: px(400.0),
+                    height: px(400.0),
                 },
             })),
             is_resizable: false,
@@ -245,6 +245,15 @@ fn open_settings_window(
             None
         }
     }
+}
+
+fn activate_window(handle: &WindowHandle<Root>, cx: &mut AsyncApp) -> bool {
+    handle
+        .update(cx, |_, window, cx| {
+            cx.activate(true);
+            window.activate_window();
+        })
+        .is_ok()
 }
 
 #[derive(RustEmbed)]
@@ -411,17 +420,12 @@ fn main() -> Result<()> {
                                 }
                                 current_window = None;
                             }
-                            Ok(AppCommand::ShowWindow) => {
+                            Ok(AppCommand::ShowWindow | AppCommand::ShowWindowFromTray) => {
                                 let mut shown = false;
                                 if !current_window_alive.load(Ordering::Relaxed) {
                                     current_window = None;
                                 } else if let Some(ref handle) = current_window {
-                                    shown = handle
-                                        .update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        })
-                                        .is_ok();
+                                    shown = activate_window(handle, cx);
                                     if !shown {
                                         current_window = None;
                                     }
@@ -459,69 +463,7 @@ fn main() -> Result<()> {
                                             app_cmd_tx.clone(),
                                         )
                                     }) {
-                                        let _ = new_handle.update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        });
-                                        current_window = Some(new_handle);
-                                        current_window_alive = new_alive;
-                                    } else {
-                                        current_window = None;
-                                    }
-                                }
-                            }
-                            Ok(AppCommand::ShowWindowFromTray) => {
-                                let mut shown = false;
-                                if !current_window_alive.load(Ordering::Relaxed) {
-                                    current_window = None;
-                                } else if let Some(ref handle) = current_window {
-                                    shown = handle
-                                        .update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        })
-                                        .is_ok();
-                                    if !shown {
-                                        current_window = None;
-                                    }
-                                }
-                                if !shown {
-                                    let open_settings = runtime_settings_for_commands
-                                        .lock()
-                                        .map(|v| v.clone())
-                                        .unwrap_or_else(|_| app_settings.clone());
-                                    let (new_ui_refresh_tx, new_ui_refresh_rx) =
-                                        mpsc::channel::<ClipboardEntry>();
-                                    if let Ok(mut tx) = ui_refresh_tx_shared_for_commands.lock() {
-                                        *tx = Some(new_ui_refresh_tx);
-                                    }
-                                    let (new_ui_cmd_tx, new_ui_cmd_rx) =
-                                        mpsc::channel::<MainWindowCommand>();
-                                    if let Ok(mut tx) = ui_cmd_tx_shared_for_commands.lock() {
-                                        *tx = new_ui_cmd_tx;
-                                    }
-                                    let mut refresh_rx_opt = Some(new_ui_refresh_rx);
-                                    let mut cmd_rx_opt = Some(new_ui_cmd_rx);
-                                    if let Some((new_handle, new_alive)) = cx.update(|cx| {
-                                        open_main_window(
-                                            cx,
-                                            db_clone.clone(),
-                                            monitor_clone.clone(),
-                                            open_settings.clone(),
-                                            open_settings.max_history_count,
-                                            refresh_rx_opt.take().unwrap_or_else(|| {
-                                                mpsc::channel::<ClipboardEntry>().1
-                                            }),
-                                            cmd_rx_opt.take().unwrap_or_else(|| {
-                                                mpsc::channel::<MainWindowCommand>().1
-                                            }),
-                                            app_cmd_tx.clone(),
-                                        )
-                                    }) {
-                                        let _ = new_handle.update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        });
+                                        let _ = activate_window(&new_handle, cx);
                                         current_window = Some(new_handle);
                                         current_window_alive = new_alive;
                                     } else {
@@ -532,12 +474,7 @@ fn main() -> Result<()> {
                             Ok(AppCommand::OpenConfiguration) => {
                                 let mut shown = false;
                                 if let Some(ref handle) = settings_window {
-                                    shown = handle
-                                        .update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        })
-                                        .is_ok();
+                                    shown = activate_window(handle, cx);
                                     if !shown {
                                         settings_window = None;
                                     }
@@ -558,10 +495,7 @@ fn main() -> Result<()> {
                                         )
                                     });
                                     if let Some(ref handle) = settings_window {
-                                        let _ = handle.update(cx, |_, window, cx| {
-                                            cx.activate(true);
-                                            window.activate_window();
-                                        });
+                                        let _ = activate_window(handle, cx);
                                     }
                                 }
                             }

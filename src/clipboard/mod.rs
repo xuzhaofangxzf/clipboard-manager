@@ -103,7 +103,6 @@ impl ClipboardMonitorHandler {
 
 impl ClipboardHandler for ClipboardMonitorHandler {
     fn on_clipboard_change(&mut self) {
-        println!("Received on clipboard change event");
         let db = Arc::clone(&self.monitor.db);
         let ignore_next = Arc::clone(&self.monitor.ignore_next);
         let last_entry = Arc::clone(&self.monitor.last_entry);

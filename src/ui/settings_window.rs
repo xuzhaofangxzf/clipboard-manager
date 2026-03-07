@@ -224,7 +224,7 @@ impl Render for SettingsWindow {
                     )
                     .child(
                         div()
-                            .mt_4()
+                            .mt_1()
                             .flex()
                             .justify_end()
                             .gap_2()

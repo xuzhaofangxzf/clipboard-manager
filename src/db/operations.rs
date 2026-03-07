@@ -169,7 +169,6 @@ impl ClipboardDatabase {
         Ok(Some(entry))
     }
 
-    /// Get total count of entries
     // pub fn count_entries(&self) -> Result<usize> {
     //     let read_txn = self.db.begin_read()?;
     //     let table = read_txn.open_table(ENTRIES_TABLE)?;

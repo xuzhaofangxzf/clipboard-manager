@@ -1,8 +1,10 @@
+#![allow(unexpected_cfgs)]
+
 use gpui::prelude::InteractiveElement as _;
 use gpui::prelude::StatefulInteractiveElement as _;
 use gpui::*;
 use gpui_component::ActiveTheme;
-use gpui_component::button::Button;
+use gpui_component::StyledExt;
 use gpui_component::input::Input;
 use gpui_component::input::{InputEvent, InputState};
 use gpui_component::scroll::ScrollableElement;
@@ -318,6 +320,7 @@ impl MainWindow {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(unexpected_cfgs)]
 fn set_window_always_on_top(window: &mut Window, always_on_top: bool) {
     const NS_NORMAL_WINDOW_LEVEL: isize = 0;
     const NS_FLOATING_WINDOW_LEVEL: isize = 3;
@@ -333,6 +336,7 @@ fn set_window_always_on_top(window: &mut Window, always_on_top: bool) {
 
     unsafe {
         let ns_view = appkit_handle.ns_view.as_ptr() as *mut objc::runtime::Object;
+        #[allow(unexpected_cfgs)]
         let ns_window: *mut objc::runtime::Object = msg_send![ns_view, window];
         if ns_window.is_null() {
             log::warn!("Failed to resolve NSWindow from app view for pin state sync");
@@ -343,6 +347,7 @@ fn set_window_always_on_top(window: &mut Window, always_on_top: bool) {
         } else {
             NS_NORMAL_WINDOW_LEVEL
         };
+        #[allow(unexpected_cfgs)]
         let _: () = msg_send![ns_window, setLevel: level];
     }
 }
@@ -356,62 +361,97 @@ impl MainWindow {
             .w_full()
             .px_3()
             .py_2()
-            .border_b_1()
-            .border_color(cx.theme().border)
             .bg(cx.theme().background)
             .flex()
-            .items_center()
-            .gap_3()
-            .child(div().w(px(260.0)).child(Input::new(&self.search_input)))
-            .child(
-                Button::new("open-configuration")
-                    .tooltip("settings")
-                    .on_click(cx.listener(|this, _, _window, _cx| {
-                        this.handle_open_configuration();
-                    }))
-                    .child(
-                        svg()
-                            .size_4()
-                            .text_color(cx.theme().muted_foreground)
-                            .path("icons/settings.svg"),
-                    ),
-            )
-            .child(
-                Button::new("clear-all")
-                    .tooltip("clear all")
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        this.handle_clear_all_click(window, cx);
-                    }))
-                    .child(
-                        svg()
-                            .size_4()
-                            .text_color(cx.theme().muted_foreground)
-                            .path("icons/clear.svg"),
-                    ),
-            )
+            .flex_col()
+            .gap_2()
             .child(
                 div()
-                    .id("pin-button")
-                    .cursor_pointer()
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        this.is_pinned = !this.is_pinned;
-                        this.sync_pin_window_level(window);
-                        if this.is_pinned {
-                            window.activate_window();
-                        }
-                        cx.notify();
-                    }))
+                    .w_full()
+                    .flex()
+                    .items_center()
+                    .justify_between()
                     .child(
-                        svg()
-                            .size_4()
-                            .text_color(if self.is_pinned {
-                                cx.theme().primary
-                            } else {
-                                cx.theme().muted_foreground
-                            })
-                            .path("icons/pin.svg"),
+                        div()
+                            .text_sm()
+                            .font_bold()
+                            .text_color(cx.theme().foreground)
+                            .child("Clipboard"),
+                    )
+                    .child(
+                        div()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(
+                                div()
+                                    .id("open-configuration")
+                                    .cursor_pointer()
+                                    .px_2()
+                                    .py_1()
+                                    .rounded_md()
+                                    .bg(cx.theme().background)
+                                    .hover(|style| style.bg(cx.theme().background))
+                                    .on_click(cx.listener(|this, _, _window, _cx| {
+                                        this.handle_open_configuration();
+                                    }))
+                                    .child(
+                                        svg()
+                                            .size_4()
+                                            .text_color(cx.theme().muted_foreground)
+                                            .path("icons/settings.svg"),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .id("clear-all")
+                                    .cursor_pointer()
+                                    .px_2()
+                                    .py_1()
+                                    .rounded_md()
+                                    .bg(cx.theme().background)
+                                    .hover(|style| style.bg(cx.theme().background))
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.handle_clear_all_click(window, cx);
+                                    }))
+                                    .child(
+                                        svg()
+                                            .size_4()
+                                            .text_color(cx.theme().muted_foreground)
+                                            .path("icons/clear.svg"),
+                                    ),
+                            )
+                            .child(
+                                div()
+                                    .id("pin-button")
+                                    .cursor_pointer()
+                                    .px_2()
+                                    .py_1()
+                                    .rounded_md()
+                                    .bg(cx.theme().background)
+                                    .hover(|style| style.bg(cx.theme().background))
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        this.is_pinned = !this.is_pinned;
+                                        this.sync_pin_window_level(window);
+                                        if this.is_pinned {
+                                            window.activate_window();
+                                        }
+                                        cx.notify();
+                                    }))
+                                    .child(
+                                        svg()
+                                            .size_4()
+                                            .text_color(if self.is_pinned {
+                                                cx.theme().primary
+                                            } else {
+                                                cx.theme().muted_foreground
+                                            })
+                                            .path("icons/pin.svg"),
+                                    ),
+                            ),
                     ),
             )
+            .child(Input::new(&self.search_input))
     }
 
     fn render_empty_state(&self, cx: &mut Context<Self>) -> Div {
