@@ -5,6 +5,9 @@ use gpui_component::ActiveTheme;
 
 use crate::db::{ClipboardData, ClipboardEntry};
 
+const PREVIEW_LINE_HEIGHT_PX: f32 = 16.0;
+const PREVIEW_MAX_LINES: f32 = 3.0;
+
 #[derive(IntoElement)]
 pub struct ClipboardListItem {
     entry: ClipboardEntry,
@@ -57,8 +60,8 @@ impl ClipboardListItem {
             return Some(
                 div()
                     .flex_shrink_0()
-                    .w_12()
-                    .h_12()
+                    .w_10()
+                    .h_10()
                     .rounded_md()
                     .bg(cx.theme().muted)
                     .border_1()
@@ -78,18 +81,22 @@ impl ClipboardListItem {
                     div().pt_0p5().child(thumbnail)
                 } else {
                     div()
-                        .text_sm()
+                        .text_xs()
                         .text_color(cx.theme().foreground)
+                        .min_h(px(PREVIEW_LINE_HEIGHT_PX))
+                        .max_h(px(PREVIEW_LINE_HEIGHT_PX * PREVIEW_MAX_LINES))
                         .overflow_hidden()
-                        .whitespace_nowrap()
+                        .whitespace_normal()
                         .child(preview_text.clone())
                 }
             }
             _ => div()
-                .text_base()
+                .text_xs()
                 .text_color(cx.theme().foreground)
+                .min_h(px(PREVIEW_LINE_HEIGHT_PX))
+                .max_h(px(PREVIEW_LINE_HEIGHT_PX * PREVIEW_MAX_LINES))
                 .overflow_hidden()
-                .whitespace_nowrap()
+                .whitespace_normal()
                 .child(preview_text),
         }
     }
@@ -107,13 +114,14 @@ impl RenderOnce for ClipboardListItem {
         let row = div()
             .w_full()
             .h_full()
-            .px_4()
+            .px_3()
             .py_2()
             .flex()
-            .items_center()
-            .gap_3()
-            .bg(cx.theme().colors.list)
-            .border_b_1()
+            .items_start()
+            .gap_2()
+            .bg(cx.theme().background)
+            .rounded_lg()
+            .border_1()
             .border_color(cx.theme().border)
             .hover(|style| style.bg(cx.theme().colors.list_hover))
             .cursor_pointer()
@@ -124,40 +132,46 @@ impl RenderOnce for ClipboardListItem {
                 }
             })
             .child(
-                // Index number
-                div()
-                    .flex_shrink_0()
-                    .w_8()
-                    .h_8()
-                    .flex()
-                    .items_center()
-                    .justify_center()
-                    .rounded_md()
-                    .bg(cx.theme().muted)
-                    .text_color(cx.theme().muted_foreground)
-                    .text_sm()
-                    .child(format!("{}", index)),
-            )
-            .child(
                 // Content preview
                 div()
                     .flex_1()
+                    .h_full()
                     .flex()
                     .flex_col()
-                    .gap_1()
                     .overflow_hidden()
-                    .child(
-                        // Metadata row
-                        div().flex().items_center().gap_2().child(
-                            div()
-                                .text_xs()
-                                .text_color(cx.theme().muted_foreground)
-                                .child(format_timestamp(&entry.timestamp)),
-                        ),
-                    )
                     .child(
                         // Preview content
                         Self::render_preview(&entry, cx),
+                    )
+                    .child(
+                        // Meta row (bottom of content)
+                        div()
+                            .w_full()
+                            .mt_auto()
+                            .pt_1()
+                            .flex()
+                            .items_center()
+                            .gap_2()
+                            .child(
+                                div()
+                                    .px_0p5()
+                                    .py_0p5()
+                                    .flex()
+                                    .items_center()
+                                    .justify_center()
+                                    .rounded_md()
+                                    .bg(cx.theme().muted)
+                                    .text_color(cx.theme().muted_foreground)
+                                    .text_xs()
+                                    .child(format!("{}", index)),
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .opacity(0.75)
+                                    .child(format_timestamp(&entry.timestamp)),
+                            ),
                     ),
             )
             .child(
@@ -166,12 +180,10 @@ impl RenderOnce for ClipboardListItem {
                     .flex_shrink_0()
                     .id(format!("clipboard-item-delete-{}", entry.id))
                     .cursor_pointer()
-                    .px_2()
-                    .py_1()
+                    .mt_0p5()
+                    .px_1()
+                    .py_0p5()
                     .rounded_md()
-                    .border_1()
-                    .border_color(cx.theme().border)
-                    .bg(cx.theme().muted)
                     .hover(|style| style.bg(cx.theme().colors.list_hover))
                     .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                         cx.stop_propagation();
@@ -185,7 +197,7 @@ impl RenderOnce for ClipboardListItem {
                     .child(
                         div().flex().items_center().child(
                             svg()
-                                .size_4()
+                                .size_3()
                                 .text_color(cx.theme().muted_foreground)
                                 .path("icons/trash-2.svg"),
                         ),
@@ -197,18 +209,8 @@ impl RenderOnce for ClipboardListItem {
 }
 
 fn format_timestamp(timestamp: &chrono::DateTime<chrono::Utc>) -> String {
-    let now = chrono::Utc::now();
-    let duration = now.signed_duration_since(*timestamp);
-
-    if duration.num_seconds() < 60 {
-        "Just now".to_string()
-    } else if duration.num_minutes() < 60 {
-        format!("{} min ago", duration.num_minutes())
-    } else if duration.num_hours() < 24 {
-        format!("{} hours ago", duration.num_hours())
-    } else if duration.num_days() < 7 {
-        format!("{} days ago", duration.num_days())
-    } else {
-        timestamp.format("%Y-%m-%d %H:%M").to_string()
-    }
+    timestamp
+        .with_timezone(&chrono::Local)
+        .format("%Y-%m-%d %H:%M:%S")
+        .to_string()
 }

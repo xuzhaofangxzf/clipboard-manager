@@ -39,8 +39,8 @@ enum AppCommand {
     Exit,
 }
 
-const MAIN_WINDOW_WIDTH_PX: f32 = 480.0;
-const MAIN_WINDOW_HEIGHT_PX: f32 = 680.0;
+const MAIN_WINDOW_WIDTH_PX: f32 = 380.0;
+const MAIN_WINDOW_HEIGHT_PX: f32 = 500.0;
 
 #[cfg(target_os = "macos")]
 fn set_app_icon(icon_path: &std::path::Path) {
@@ -119,6 +119,8 @@ fn open_main_window(
                     .placeholder("Search clipboard history...")
                     .default_value("")
             });
+            let hide_cmd_tx = app_cmd_tx.clone();
+            let config_cmd_tx = app_cmd_tx.clone();
 
             let main_window = MainWindow::new(
                 db,
@@ -127,7 +129,12 @@ fn open_main_window(
                 search_input,
                 window_alive_for_view,
                 Arc::new(move || {
-                    let _ = app_cmd_tx.send(AppCommand::HideWindow);
+                    let _ = hide_cmd_tx.send(AppCommand::HideWindow);
+                }),
+                Arc::new({
+                    move || {
+                        let _ = config_cmd_tx.send(AppCommand::OpenConfiguration);
+                    }
                 }),
                 ui_refresh_rx,
                 ui_cmd_rx,
