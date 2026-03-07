@@ -5,6 +5,7 @@ use clipboard_rs::{Clipboard, ClipboardContext, ClipboardWatcherContext};
 use clipboard_rs::{ClipboardHandler, ClipboardWatcher};
 use log::{error, info};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 
@@ -85,11 +86,14 @@ impl ClipboardMonitor {
 
 pub struct ClipboardMonitorHandler {
     monitor: Arc<ClipboardMonitor>,
-    ui_refresh_tx: Sender<ClipboardEntry>,
+    ui_refresh_tx: Arc<Mutex<Option<Sender<ClipboardEntry>>>>,
 }
 
 impl ClipboardMonitorHandler {
-    pub fn new(monitor: Arc<ClipboardMonitor>, ui_refresh_tx: Sender<ClipboardEntry>) -> Self {
+    pub fn new(
+        monitor: Arc<ClipboardMonitor>,
+        ui_refresh_tx: Arc<Mutex<Option<Sender<ClipboardEntry>>>>,
+    ) -> Self {
         Self {
             monitor,
             ui_refresh_tx,
@@ -127,8 +131,18 @@ impl ClipboardHandler for ClipboardMonitorHandler {
                         info!("Stored clipboard entry {}", id);
                         entry.id = id;
                         *last = Some(entry.clone());
-                        if let Err(e) = self.ui_refresh_tx.send(entry) {
-                            error!("Failed to notify UI with new entry: {}", e);
+                        let mut maybe_sender = match self.ui_refresh_tx.lock() {
+                            Ok(sender) => sender,
+                            Err(e) => {
+                                error!("Failed to lock UI refresh sender: {}", e);
+                                return;
+                            }
+                        };
+
+                        if let Some(tx) = maybe_sender.as_ref()
+                            && tx.send(entry).is_err()
+                        {
+                            *maybe_sender = None;
                         }
                     }
                     Err(e) => {

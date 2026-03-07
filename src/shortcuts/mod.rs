@@ -48,6 +48,10 @@ impl ShortcutManager {
             }
         });
     }
+
+    pub fn current_hotkey_id(&self) -> Option<u32> {
+        self.current_hotkey.map(|(_, id)| id)
+    }
 }
 
 fn parse_shortcut(s: &str) -> Result<HotKey> {
@@ -64,16 +68,56 @@ fn parse_shortcut(s: &str) -> Result<HotKey> {
             key => {
                 // Try to parse as Code
                 // This is a simplified version, ideally we'd map more keys
-                key_code = Some(match key.to_uppercase().as_str() {
-                    "V" => Code::KeyV,
-                    "C" => Code::KeyC,
-                    "SPACE" => Code::Space,
-                    _ => anyhow::bail!("Unsupported key: {}", key),
-                });
+                key_code = Some(parse_key_code(key)?);
             }
         }
     }
 
     let code = key_code.ok_or_else(|| anyhow::anyhow!("No key specified in shortcut"))?;
     Ok(HotKey::new(Some(modifiers), code))
+}
+
+fn parse_key_code(key: &str) -> Result<Code> {
+    let upper = key.trim().to_uppercase();
+    let code = match upper.as_str() {
+        "A" => Code::KeyA,
+        "B" => Code::KeyB,
+        "C" => Code::KeyC,
+        "D" => Code::KeyD,
+        "E" => Code::KeyE,
+        "F" => Code::KeyF,
+        "G" => Code::KeyG,
+        "H" => Code::KeyH,
+        "I" => Code::KeyI,
+        "J" => Code::KeyJ,
+        "K" => Code::KeyK,
+        "L" => Code::KeyL,
+        "M" => Code::KeyM,
+        "N" => Code::KeyN,
+        "O" => Code::KeyO,
+        "P" => Code::KeyP,
+        "Q" => Code::KeyQ,
+        "R" => Code::KeyR,
+        "S" => Code::KeyS,
+        "T" => Code::KeyT,
+        "U" => Code::KeyU,
+        "V" => Code::KeyV,
+        "W" => Code::KeyW,
+        "X" => Code::KeyX,
+        "Y" => Code::KeyY,
+        "Z" => Code::KeyZ,
+        "0" => Code::Digit0,
+        "1" => Code::Digit1,
+        "2" => Code::Digit2,
+        "3" => Code::Digit3,
+        "4" => Code::Digit4,
+        "5" => Code::Digit5,
+        "6" => Code::Digit6,
+        "7" => Code::Digit7,
+        "8" => Code::Digit8,
+        "9" => Code::Digit9,
+        "SPACE" => Code::Space,
+        _ => anyhow::bail!("Unsupported key: {}", key),
+    };
+    Ok(code)
 }

@@ -3,7 +3,7 @@ use gpui::prelude::StatefulInteractiveElement as _;
 use gpui::*;
 use gpui_component::ActiveTheme;
 
-use crate::db::{ClipboardData, ClipboardEntry, ContentType};
+use crate::db::{ClipboardData, ClipboardEntry};
 
 #[derive(IntoElement)]
 pub struct ClipboardListItem {
@@ -43,24 +43,6 @@ impl ClipboardListItem {
         self
     }
 
-    fn render_type_badge(entry: &ClipboardEntry, cx: &App) -> impl IntoElement {
-        let (text, color) = match entry.content_type {
-            ContentType::Text => ("Text", cx.theme().accent_foreground),
-            ContentType::RichText => ("RTF", cx.theme().accent_foreground),
-            ContentType::Html => ("HTML", cx.theme().accent_foreground),
-            ContentType::Image => ("Image", cx.theme().accent_foreground),
-        };
-
-        div()
-            .px_1p5()
-            .py_0p5()
-            .rounded_sm()
-            .bg(cx.theme().muted)
-            .text_xs()
-            .text_color(color)
-            .child(text)
-    }
-
     fn render_thumbnail(entry: &ClipboardEntry, cx: &App) -> Option<impl IntoElement> {
         if let ClipboardData::Image { data, thumbnail } = &entry.data {
             let image_bytes = if !thumbnail.is_empty() && image::guess_format(thumbnail).is_ok() {
@@ -75,8 +57,8 @@ impl ClipboardListItem {
             return Some(
                 div()
                     .flex_shrink_0()
-                    .w_10()
-                    .h_10()
+                    .w_12()
+                    .h_12()
                     .rounded_md()
                     .bg(cx.theme().muted)
                     .border_1()
@@ -104,7 +86,7 @@ impl ClipboardListItem {
                 }
             }
             _ => div()
-                .text_sm()
+                .text_base()
                 .text_color(cx.theme().foreground)
                 .overflow_hidden()
                 .whitespace_nowrap()
@@ -125,11 +107,11 @@ impl RenderOnce for ClipboardListItem {
         let row = div()
             .w_full()
             .h_full()
-            .px_3()
-            .py_1p5()
+            .px_4()
+            .py_2()
             .flex()
             .items_center()
-            .gap_2()
+            .gap_3()
             .bg(cx.theme().colors.list)
             .border_b_1()
             .border_color(cx.theme().border)
@@ -145,15 +127,15 @@ impl RenderOnce for ClipboardListItem {
                 // Index number
                 div()
                     .flex_shrink_0()
-                    .w_7()
-                    .h_7()
+                    .w_8()
+                    .h_8()
                     .flex()
                     .items_center()
                     .justify_center()
                     .rounded_md()
                     .bg(cx.theme().muted)
                     .text_color(cx.theme().muted_foreground)
-                    .text_xs()
+                    .text_sm()
                     .child(format!("{}", index)),
             )
             .child(
@@ -165,18 +147,13 @@ impl RenderOnce for ClipboardListItem {
                     .gap_1()
                     .overflow_hidden()
                     .child(
-                        // Content type badge
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap_2()
-                            .child(Self::render_type_badge(&entry, cx))
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child(format_timestamp(&entry.timestamp)),
-                            ),
+                        // Metadata row
+                        div().flex().items_center().gap_2().child(
+                            div()
+                                .text_xs()
+                                .text_color(cx.theme().muted_foreground)
+                                .child(format_timestamp(&entry.timestamp)),
+                        ),
                     )
                     .child(
                         // Preview content
@@ -189,6 +166,13 @@ impl RenderOnce for ClipboardListItem {
                     .flex_shrink_0()
                     .id(format!("clipboard-item-delete-{}", entry.id))
                     .cursor_pointer()
+                    .px_2()
+                    .py_1()
+                    .rounded_md()
+                    .border_1()
+                    .border_color(cx.theme().border)
+                    .bg(cx.theme().muted)
+                    .hover(|style| style.bg(cx.theme().colors.list_hover))
                     .on_mouse_down(MouseButton::Left, move |_, _, cx| {
                         cx.stop_propagation();
                     })
@@ -199,10 +183,10 @@ impl RenderOnce for ClipboardListItem {
                         }
                     })
                     .child(
-                        div().size_4().child(
+                        div().flex().items_center().child(
                             svg()
-                                .size_full()
-                                .text_color(cx.theme().danger)
+                                .size_4()
+                                .text_color(cx.theme().muted_foreground)
                                 .path("icons/trash-2.svg"),
                         ),
                     ),

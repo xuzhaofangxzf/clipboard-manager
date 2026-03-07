@@ -1,5 +1,6 @@
 use super::schema::ClipboardEntry;
 use anyhow::Result;
+use chrono::Utc;
 use redb::{Database, ReadableTable, TableDefinition};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -98,6 +99,74 @@ impl ClipboardDatabase {
         }
         write_txn.commit()?;
         Ok(())
+    }
+
+    /// Delete all clipboard entries.
+    pub fn clear_all_entries(&self) -> Result<()> {
+        let read_txn = self.db.begin_read()?;
+        let table = read_txn.open_table(ENTRIES_TABLE)?;
+        let all_ids: Vec<u64> = table
+            .iter()?
+            .filter_map(|r| r.ok())
+            .map(|(k, _)| k.value())
+            .collect();
+        drop(table);
+        drop(read_txn);
+
+        if all_ids.is_empty() {
+            return Ok(());
+        }
+
+        let write_txn = self.db.begin_write()?;
+        {
+            let mut table = write_txn.open_table(ENTRIES_TABLE)?;
+            for id in all_ids {
+                table.remove(id)?;
+            }
+        }
+        write_txn.commit()?;
+        Ok(())
+    }
+
+    /// Promote an entry to the top by re-inserting it as the newest entry.
+    /// Returns the new entry if the original ID existed.
+    pub fn promote_entry_to_top(&self, id: u64) -> Result<Option<ClipboardEntry>> {
+        let write_txn = self.db.begin_write()?;
+
+        let original_bytes = {
+            let mut entries_table = write_txn.open_table(ENTRIES_TABLE)?;
+            let bytes = if let Some(value) = entries_table.get(id)? {
+                value.value().to_vec()
+            } else {
+                return Ok(None);
+            };
+            entries_table.remove(id)?;
+            bytes
+        };
+
+        let new_id = {
+            let mut counter_table = write_txn.open_table(COUNTER_TABLE)?;
+            let current = counter_table
+                .get("entry_id")?
+                .map(|v| v.value())
+                .unwrap_or(0);
+            let next_id = current + 1;
+            counter_table.insert("entry_id", next_id)?;
+            next_id
+        };
+
+        let mut entry = ClipboardEntry::from_bytes(&original_bytes)?;
+        entry.id = new_id;
+        entry.timestamp = Utc::now();
+        let new_bytes = entry.to_bytes()?;
+
+        {
+            let mut entries_table = write_txn.open_table(ENTRIES_TABLE)?;
+            entries_table.insert(new_id, new_bytes.as_slice())?;
+        }
+
+        write_txn.commit()?;
+        Ok(Some(entry))
     }
 
     /// Get total count of entries
