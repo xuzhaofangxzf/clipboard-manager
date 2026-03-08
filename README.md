@@ -10,9 +10,9 @@ A powerful clipboard history manager built with GPUI (the UI framework powering 
 - ✅ **Search & Filter** - Quickly find clipboard entries
 - ✅ **Embedded Database** - Uses redb for fast, reliable storage
 - ✅ **Event-Based Monitoring** - Efficient clipboard watching with clipboard-rs
-- 🚧 **System Tray Icon** - Quick access from menu bar (coming soon)
-- 🚧 **Global Shortcuts** - Show/hide with customizable hotkeys (coming soon)
-- 🚧 **Settings UI** - Configure theme, language, and history limits (coming soon)
+- ✅ **System Tray Icon** - Quick access from menu bar
+- ✅ **Global Shortcuts** - Show/hide with customizable hotkeys
+- ✅ **Settings UI** - Configure theme, language, and history limits
 
 ## Requirements
 
@@ -30,6 +30,29 @@ cargo build --release
 ```bash
 cargo run
 ```
+
+## Release Automation (GitHub)
+
+This repository includes a GitHub Actions workflow at `.github/workflows/release.yml` to build and publish release artifacts automatically.
+
+### Trigger
+
+- Push a version tag matching `v*` (for example: `v0.1.0`)
+- Or run the workflow manually from the Actions tab (`workflow_dispatch`)
+
+### How to publish a release
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+### Generated artifacts
+
+- `clipboard-manager-<tag>-macos.tar.gz`
+- `clipboard-manager-<tag>-macos.tar.gz.sha256`
+
+The workflow also creates a GitHub Release automatically and uploads these files.
 
 ## Usage
 
