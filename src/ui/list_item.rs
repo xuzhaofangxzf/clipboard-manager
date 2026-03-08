@@ -2,7 +2,6 @@ use gpui::prelude::InteractiveElement as _;
 use gpui::prelude::StatefulInteractiveElement as _;
 use gpui::*;
 use gpui_component::ActiveTheme;
-use gpui_component::StyledExt;
 
 use crate::db::{ClipboardData, ClipboardEntry};
 
@@ -126,7 +125,7 @@ impl RenderOnce for ClipboardListItem {
             .border_color(cx.theme().border)
             .hover(|style| style.bg(cx.theme().colors.list_hover))
             .cursor_pointer()
-            .id(format!("clipboard-item-{}", entry.id))
+            .id(SharedString::new(format!("clipboard-item-{}", entry.id)))
             .on_click(move |_event, window, cx| {
                 if let Some(ref handler) = on_click {
                     handler(window, cx);
@@ -179,7 +178,10 @@ impl RenderOnce for ClipboardListItem {
                 // Delete button
                 div()
                     .flex_shrink_0()
-                    .id(format!("clipboard-item-delete-{}", entry.id))
+                    .id(SharedString::new(format!(
+                        "clipboard-item-delete-{}",
+                        entry.id
+                    )))
                     .cursor_pointer()
                     .mt_0p5()
                     .px_1()

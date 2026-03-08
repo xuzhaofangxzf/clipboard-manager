@@ -447,7 +447,7 @@ fn main() -> Result<()> {
                                     }
                                     let mut refresh_rx_opt = Some(new_ui_refresh_rx);
                                     let mut cmd_rx_opt = Some(new_ui_cmd_rx);
-                                    if let Some((new_handle, new_alive)) = cx.update(|cx| {
+                                    match cx.update(|cx| {
                                         open_main_window(
                                             cx,
                                             db_clone.clone(),
@@ -463,11 +463,20 @@ fn main() -> Result<()> {
                                             app_cmd_tx.clone(),
                                         )
                                     }) {
-                                        let _ = activate_window(&new_handle, cx);
-                                        current_window = Some(new_handle);
-                                        current_window_alive = new_alive;
-                                    } else {
-                                        current_window = None;
+                                        Ok(Some((new_handle, new_alive))) => {
+                                            let _ = activate_window(&new_handle, cx);
+                                            current_window = Some(new_handle);
+                                            current_window_alive = new_alive;
+                                        }
+                                        Ok(None) => {
+                                            current_window = None;
+                                        }
+                                        Err(err) => {
+                                            error!(
+                                                "Failed to open main window from command: {err}"
+                                            );
+                                            current_window = None;
+                                        }
                                     }
                                 }
                             }
@@ -484,7 +493,7 @@ fn main() -> Result<()> {
                                         .lock()
                                         .map(|v| v.clone())
                                         .unwrap_or_else(|_| app_settings.clone());
-                                    settings_window = cx.update(|cx| {
+                                    settings_window = match cx.update(|cx| {
                                         open_settings_window(
                                             cx,
                                             settings_for_window,
@@ -493,7 +502,13 @@ fn main() -> Result<()> {
                                             runtime_settings_for_commands.clone(),
                                             shortcut_manager.clone(),
                                         )
-                                    });
+                                    }) {
+                                        Ok(window) => window,
+                                        Err(err) => {
+                                            error!("Failed to open settings window: {err}");
+                                            None
+                                        }
+                                    };
                                     if let Some(ref handle) = settings_window {
                                         let _ = activate_window(handle, cx);
                                     }
